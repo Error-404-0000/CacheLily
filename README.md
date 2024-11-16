@@ -23,7 +23,7 @@ namespace CacheLily.Test
         [NoPredicting]
         public static dynamic Something(object[] args)
         {
-            // No prediction or caching
+            // No prediction but will cache
             return 1;
         }
 
