@@ -4,7 +4,7 @@ CacheLily is a powerful caching and prediction library designed to optimize your
 
 ## Getting Started with CacheLily
 
-Below is a code example demonstrating the use of CacheLily for caching and predicting operations.
+Below is an example
 
 ```csharp
 using CacheLily.Attributes;
