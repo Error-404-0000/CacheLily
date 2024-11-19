@@ -1,6 +1,7 @@
 # CacheLily Usage and Examples
 
 CacheLily is a powerful caching and prediction library designed to optimize your code by storing results, predicting outputs, and improving performance for both simple and complex operations. This guide provides an overview of how to use CacheLily effectively, along with practical examples from basic calculations to more complex scenarios.
+it can skip running actions and still returns the expected output
 
 ## Getting Started with CacheLily
 
