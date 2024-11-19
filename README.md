@@ -5,7 +5,7 @@ it can skip running actions and still returns the expected output
 
 ## Getting Started with CacheLily
 
-Below is an example
+
 
 ```csharp
 using CacheLily.Attributes;
