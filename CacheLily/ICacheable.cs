@@ -24,16 +24,28 @@ namespace CacheLily
 
             int hash = 17;
             System.Reflection.PropertyInfo[] properties = obj.GetType().GetProperties();
-
+            System.Reflection.FieldInfo[] fields = obj.GetType().GetFields();
             foreach (System.Reflection.PropertyInfo property in properties)
             {
-                //skipping the CacheCode 
+                //propusk CacheCode
+
                 if (property.Name == nameof(CacheCode))
                 {
                     continue;
                 }
 
                 object? value = property.GetValue(obj);
+                hash = (hash * 31) + (value?.GetHashCode() ?? 0);
+            }
+            foreach (System.Reflection.FieldInfo field in fields)
+            {
+                //propusk CacheCode
+                if (field.Name == nameof(CacheCode))
+                {
+                    continue;
+                }
+
+                object? value = field.GetValue(obj);
                 hash = (hash * 31) + (value?.GetHashCode() ?? 0);
             }
             if (hash <= 0)

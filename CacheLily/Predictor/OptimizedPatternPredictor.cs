@@ -8,14 +8,14 @@ namespace CacheLily.Predictor
 
     public class OptimizedPatternPredictor : IPatternPredictor
     {
-        private readonly List<IPatternRule> _patterns = new(); // Global rule list
+        private readonly List<IPatternRule> _patterns = new(); // spisok vsekh pravil
         private readonly Dictionary<string, Dictionary<int, object>> _resultCache = new(); // Per-method cache
 
         public bool TryPredict(string methodName, object[] args, out object result)
         {
             result = null;
 
-            // Check if the method has cached results
+            //proverte keshirovan lee resultate metoda
             var memoryBytes = GetByteRepresentation(args);
             int hash = ComputeHash(memoryBytes);
             hash = hash < 0 ? -hash : hash;
@@ -25,7 +25,8 @@ namespace CacheLily.Predictor
                 return true;
             }
 
-            // Check global patterns for matches
+            //proverka globalnykh zakonomernostei na sovpadeniya
+
             foreach (var pattern in _patterns)
             {
                 if (pattern.Matches(memoryBytes, out result))
@@ -36,7 +37,8 @@ namespace CacheLily.Predictor
                 }
             }
 
-            return false; // No prediction
+            return false; //nett prognosis
+
         }
 
         public void Learn(string methodName, object[] args, object result)
@@ -47,7 +49,7 @@ namespace CacheLily.Predictor
             // Cache the result
             CacheResult(methodName, hash, result);
 
-            // Teach global patterns
+            // obuchaite globalnym zakonomernostya
             foreach (var pattern in _patterns)
             {
                 pattern.Learn(memoryBytes, result);
@@ -56,7 +58,7 @@ namespace CacheLily.Predictor
 
         public void AddPattern(IPatternRule pattern)
         {
-            _patterns.Add(pattern); // Add a new rule to the global list
+            _patterns.Add(pattern); //dobavlyaet novoye pravilo vieu globalny spisok
         }
 
         private void CacheResult(string methodName, int hash, object result)
@@ -92,6 +94,10 @@ namespace CacheLily.Predictor
                 else if (arg is string s)
                 {
                     bytes.AddRange(System.Text.Encoding.UTF8.GetBytes(s));
+                }
+                else if (arg is char c)
+                {
+                    bytes.AddRange(System.Text.Encoding.UTF8.GetBytes(c.ToString()));
                 }
                 else
                 {

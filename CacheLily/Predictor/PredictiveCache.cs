@@ -21,7 +21,7 @@ namespace CacheLily.Predictor
             {
                 return result;
             }
-            //Just learned something
+            //eto pozvolyayet emu uchitsya
             return result;
         }
     }

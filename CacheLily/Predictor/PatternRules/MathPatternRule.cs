@@ -12,7 +12,7 @@ namespace CacheLily.Predictor
         public MathPatternRule()
         {
             _confidence = 0;
-            _relearnThreshold = 5; // Number of mismatches before relearning
+            _relearnThreshold = 5; 
         }
 
         public bool Matches(byte[] memoryBytes, out object result)
@@ -35,27 +35,27 @@ namespace CacheLily.Predictor
             if (_ruleFunction == null)
             {
                 _ruleFunction = GenerateRule(memoryBytes, expectedOutput);
-                _confidence = 10; // Start baseline confidence
+                _confidence = 10;
             }
             else
             {
                 var predictedOutput = _ruleFunction(memoryBytes);
                 if (predictedOutput.Equals(expectedOutput))
                 {
-                    _confidence = Math.Min(_confidence + 20, 100); // Boost confidence
+                    _confidence = Math.Min(_confidence + 20, 100); // dobavlyaet uverennosti
                 }
                 else
                 {
                     _relearnThreshold--;
                     if (_relearnThreshold <= 0)
                     {
-                        _ruleFunction = GenerateRule(memoryBytes, expectedOutput); // Refine the rule
-                        _confidence = 10; // Reset confidence
-                        _relearnThreshold = 5; // Reset relearn threshold
+                        _ruleFunction = GenerateRule(memoryBytes, expectedOutput); //utochnite pravilo
+                        _confidence = 10; //sbroste uverennost
+                        _relearnThreshold = 5; // sbros poroga povtornogo obuchenia
                     }
                     else
                     {
-                        _confidence = Math.Max(_confidence - 10, 0); // Decay confidence
+                        _confidence = Math.Max(_confidence - 10, 0); // uverennost vieu raspade
                     }
                 }
             }
@@ -92,7 +92,8 @@ namespace CacheLily.Predictor
                         };
                     }
 
-                    return _ => output; // Default rule
+                    return _ => output; //po umolchaniyu
+
                 }
             }
         }

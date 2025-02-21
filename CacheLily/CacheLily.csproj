@@ -5,6 +5,29 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+    <PackageId>CacheLily</PackageId>
+    <Version>1.4.0</Version>
+    <Authors>Error-404-0000</Authors>
+    <Company>Error-404-0000</Company>
+    <Copyright>© 2024 Error-404-0000. All rights reserved.</Copyright>
+    <Description>A predictive caching and optimization library for .NET to enhance performance through intelligent caching and prediction mechanisms.</Description>
+    <PackageTags>caching;predictive;optimization;dotnet;performance</PackageTags>
+    <RepositoryUrl>https://github.com/Error-404-0000/CacheLily</RepositoryUrl>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageProjectUrl>https://github.com/Error-404-0000/CacheLily</PackageProjectUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageIcon>CacheLily.png</PackageIcon>
+    <OutputPath>bin\Release\net9.0\</OutputPath>
+
   </PropertyGroup>
 
+  <ItemGroup>
+    <None Update="CacheLily.png">
+      <Pack>True</Pack>
+      <PackagePath></PackagePath>
+    </None>
+  </ItemGroup>
+
 </Project>
+ 

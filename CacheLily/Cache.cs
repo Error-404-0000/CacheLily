@@ -46,8 +46,11 @@ namespace CacheLily
                 _predictor.AddPattern(new MathPatternRule());
             }
         }
-
-        public (bool found, T value) TryGet(int cacheCode)
+        public void AddPattern(IPatternRule patternrules)
+        {
+            _predictor.AddPattern(patternrules);
+        }
+        private (bool found, T value) TryGet(int cacheCode)
         {
             var item = CacheItems.FirstOrDefault(x => x.IsNotNullOrDefault() && x.CacheCode == cacheCode);
             if (item.IsNotNullOrDefault() && !item.IsExpired())
@@ -59,7 +62,7 @@ namespace CacheLily
         }
 
 
-        public void AddOrUpdate(T item)
+        private void AddOrUpdate(T item)
         {
             var cacheCode = item.GetCacheCode();
             var cacheItem = new CacheItem<T>
@@ -73,13 +76,13 @@ namespace CacheLily
             CacheItems[Index] = cacheItem;
         }
 
-        public int GetExpiredOrCloseToExpired()
+        private int GetExpiredOrCloseToExpired()
         {
             CacheItem<T>? item = CacheItems.OrderBy(x => x.TTL).FirstOrDefault();
             return item is null ? 0 : Array.IndexOf(CacheItems, item);
         }
 
-        public void CleanupExpiredItems()
+        private void CleanupExpiredItems()
         {
             for (int i = 0; i < CacheItems.Length; i++)
             {
@@ -89,7 +92,12 @@ namespace CacheLily
                 }
             }
         }
-
+        /// <summary>
+        ///  Creates a new object
+        /// </summary>
+        /// <param name="obj">object</param>
+        /// <returns>returns a ref or a copy</returns>
+        /// <exception cref="Exception">Not Match. T must be ICacheable</exception>
         public ref T NewRef(T obj)
         {
             if (last_return != default && last_return.CacheCode == obj.GetCacheCode())
@@ -111,7 +119,12 @@ namespace CacheLily
                 throw new Exception("Not Match. T must be ICacheable");
             }
         }
-
+        /// <summary>
+        ///  Creates an object or  a copy of the cached object
+        /// </summary>
+        /// <param name="obj">the object</param>
+        /// <returns>Copy of the object</returns>
+        /// <exception cref="Exception">Not Match. T must be ICacheable</exception>
         public T New(T obj)
         {
             if (last_return != default && last_return.CacheCode == obj.GetCacheCode())
@@ -127,65 +140,90 @@ namespace CacheLily
             return obj is ICacheable cache ? CacheItems[Pin(ref cache)].TValue : throw new Exception("Not Match. T must be ICacheable");
         }
 
-        public T Invoke(Delegate func, params object[] args)
+        /// <summary>
+        /// See <see cref="Invoke{TResult}(Delegate, object[])"/>
+        /// </summary>
+       
+        public T Invoke(Type Object,Delegate func, params object[] args)
         {
-            return Invoke<T>(func, args);
+            return Invoke<T>(Object,func, args);
         }
-        public TResult Invoke<TResult>(Delegate func, params object[] args) where TResult : T
+        /// <summary>
+        ///  Invokes the method
+        /// </summary>
+        /// <typeparam name="TResult">the expected returned value</typeparam>
+        /// <param name="func">Delegate</param>
+        /// <param name="args">args</param>
+        /// <returns>the returned value and it is also cached</returns>
+        /// <exception cref="InvalidCastException">Invalid TResult</exception>
+        public TResult Invoke<TResult>(Type Object,Delegate func, params object[] args) where TResult : T
         {
             int hashcode = ICacheable.GenerateCacheHashCode(func.Method.Name, args);
             hashcode = hashcode < 0 ? -hashcode : hashcode;
             dynamic result;
             var m = func.GetMethodInfo();
-            if (m.GetCustomAttribute<NoCachingAttribute>() is not null)
+            if (m.GetCustomAttribute<NoCachingAttribute>() is not null|Object.GetCustomAttribute<NoCachingAttribute>() is not null )
             {
-                return ConvertToCacheObjectOrAny<TResult>(func.DynamicInvoke(args));
+                return ConvertToCacheObjectOrAny<TResult>(func.DynamicInvoke(args)!);
             }
-            // Predict or use cache if available
             
-            // Cache check if prediction fails
             if (Any(hashcode) is var cacheResult && cacheResult.any)
             {
                 return (TResult)CacheItems[cacheResult.TValue_Index].TValue;
             }
-            if (PredictiveMode && m.GetCustomAttribute<NoPredictingAttribute>() is null && _predictor.TryPredict(m.Name,args, out result))
+            if (PredictiveMode
+                && args != null
+                && args.All(arg => arg is int || arg is string || arg.GetType().IsValueType)
+                && m.GetCustomAttribute<NoPredictingAttribute>() is null
+                && _predictor.TryPredict(m.Name, args, out result))
             {
                 return ConvertToCacheObjectOrAny<TResult>(result);
             }
 
-            // Invoke function only once for unique input
+            //vyzov functions tolko odin raz dlya unikalnogo vvoda
+
             result = ConvertToCacheObjectOrAny<TResult>(func.DynamicInvoke(args));
 
-            // Learn from result in Predictive Mode
+            //uchites na resultate vieu predictive regime
             if (PredictiveMode && m.GetCustomAttribute<NoPredictingAttribute>() is  null)
             {
                 _predictor.Learn(m.Name, args, typeof(TResult) == typeof(CacheObject) || typeof(TResult) == typeof(CacheObject<object>) ? Cache.DeepSearchValue(result.Value) : result);
             }
 
-            // Cache the result
+            // keshirovaniye resultata
             CacheItems[Index = GetExpiredOrCloseToExpired()] = new CacheItem<T>
             {
                 CacheCode = hashcode,
                 TValue = result,
                 TTL = _expireAfterCalls
             };
-            if (result is TResult tre)
-                return tre;
-            throw new InvalidCastException(nameof(TResult));
+            return result;
         }
 
-
+        /// <summary>
+        /// Checks if the delegate is void or not
+        /// </summary>
+        /// <param name="delegate"></param>
+        /// <returns></returns>
         public static bool NotVoidl(Delegate @delegate)
         {
             return @delegate.GetMethodInfo().ReturnType != typeof(void);
         }
+        /// <summary>
+        ///  Convert the returned value 
+        /// </summary>
+        /// <typeparam name="TResult">the Type Expected</typeparam>
+        /// <param name="value">the object that is converted or not converted</param>
+        /// <returns>the converted object</returns>
+        /// <exception cref="InvalidCastException"></exception>
         protected TResult ConvertToCacheObjectOrAny<TResult>(object value) where TResult : T
         {
             if (value is TResult castValue)
                 return castValue;
 
             Type targetType;
-
+            if (value is null)
+                return default(TResult);
             if (typeof(TResult) == typeof(CacheObject) || value.GetType() == typeof(CacheObject))
             {
                 targetType = typeof(CacheObject);
@@ -209,7 +247,11 @@ namespace CacheLily
             return (TResult)obj;
         }
 
-
+        /// <summary>
+        ///  Checks if the cachecode exist 
+        /// </summary>
+        /// <param name="cacheCode">the cacheCode</param>
+        /// <returns>any and the TValue index</returns>
         public (bool any, int TValue_Index) Any(int cacheCode)
         {
             if (last_return.CacheCode == cacheCode && last_return.exp > 0 && CacheItems[last_return.index].IsNotNullOrDefault())
@@ -231,11 +273,21 @@ namespace CacheLily
             }
             return (false, -1);
         }
-
+        /// <summary>
+        ///See <see cref="Pin{Timpl}(ref ICacheable)"/>.
+        /// </summary>
+      
         public int Pin(ref ICacheable cacheable)
         {
             return Pin<T>(ref cacheable);
         }
+
+        /// <summary>
+        ///  Pin an ICacheable object to the Cache memory
+        /// </summary>
+        /// <typeparam name="Timpl">the type of the ICacheble object</typeparam>
+        /// <param name="cacheable">The ICacheable object to pin </param>
+        /// <returns>returns the ICacheable index in the i cache memory</returns>
         public int Pin<Timpl>(ref ICacheable cacheable) where Timpl : T
         {
             Index = GetExpiredOrCloseToExpired();
@@ -248,7 +300,7 @@ namespace CacheLily
                     TTL = _expireAfterCalls
                 };
                 GC.SuppressFinalize(cacheable);
-                CacheItems[Index] = (CacheItem<T>)cacheable;
+                CacheItems[Index] = (CacheItem<T>)newItem;
                 return Index;
             }
             CacheItems[Index] = (CacheItem<T>)cacheable;
@@ -257,30 +309,34 @@ namespace CacheLily
 
 
     }
-    [Obsolete("Not recommended: uses more memory and is slower due to object allocation required to hold the value. Use Cache<T> instead.", error: false)]
     public class Cache(int Capacity, int TTL = 20, bool PredictiveMode = true) : Cache<CacheObject<dynamic?>>(Capacity, TTL, PredictiveMode)
     {
-
-
+        /// <summary>
+        /// <see cref="Cache{}.Invoke(Delegate, object[])"/>
+        /// </summary>
 
         public new object? Invoke(Delegate func, params object[] args)
         {
             return this.Invoke<object>(func, args) ?? default(object);
         }
-
-        public new T Invoke<T>(Delegate func, params object[] args) 
+        /// <summary>
+        /// <see cref="Cache{}.Invoke{}(Delegate, object[])"/>
+        /// </summary>
+        public T Invoke<T>(Delegate func, params object[] args) 
         {
             if(typeof(T) == GetType())
             {
                 throw new InvalidOperationException("T cannot be CacheObject or CacheObject<T>.");
 
             }
-            return (T)DeepSearchValue(base.Invoke(func, args));
+            return (T)DeepSearchValue(base.Invoke(GetType(),func, args))!;
           
         }
         public static dynamic? DeepSearchValue(CacheObject obj)
         {
-            if(obj.Value is CacheObject e)
+            if (obj is null)
+                return default;
+            if (obj.Value is CacheObject e)
                 return DeepSearchValue(e);
             else if (obj.Value is CacheObject<dynamic> ex)
                 return DeepSearchValue(ex);
@@ -288,6 +344,8 @@ namespace CacheLily
         }
         public static dynamic? DeepSearchValue<T>(CacheObject<T> obj)
         {
+            if (obj is null)
+                return default;
             if (obj.Value is CacheObject<object>  e)
                 return DeepSearchValue(e);
             else    if(obj.Value is CacheObject ed)

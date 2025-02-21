@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 namespace CacheLily.Attributes
 {
     //Won't try predicitng the method 
+
     public class NoPredictingAttribute:Attribute;
     
 }
