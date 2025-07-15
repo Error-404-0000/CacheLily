@@ -18,7 +18,7 @@ namespace CacheLily.Test
         public static double Add(double sec0, double sec1)
         {
             Thread.Sleep(100); // Simulating a delay to show caching effectiveness
-            return sec0 + sec1;
+            return sec0 + sec1; 
         }
 
         [NoPredicting]
