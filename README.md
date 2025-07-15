@@ -9,7 +9,7 @@ it can skip running actions and still returns the expected output
 
 ```csharp
 using CacheLily.Attributes;
-using System.Diagnostics;
+using System.Diagnostics; 
 
 namespace CacheLily.Test
 {
